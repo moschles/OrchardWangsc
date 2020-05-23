@@ -1,3 +1,5 @@
+package orchardwang
+
 import scala.io.Source
 import java.io.{FileNotFoundException, IOException}
 import java.io.File
@@ -55,7 +57,8 @@ object Main
 	{
 		Chatter.on()
 		Chatter.dbg("Entered main.")
-		
+
+ 		
 		val infileName = 
 			if( args.length > 0 ) args(0) 
 			else "input.txt" 
