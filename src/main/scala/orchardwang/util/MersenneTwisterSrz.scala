@@ -277,15 +277,9 @@ final class MersenneTwisterSrz( instanceNumber:Int )
             System.err.println(s"$input_file_name" + verbose)
         } finally {
           bs.close()
-          val CSVcontents = builder.toString()
-
-          // Literally remove the final comma.
-          // Seriously.
-          val chop = CSVcontents.length - 1
-          if( chop > 4800 ) {
-            val uCSV = CSVcontents.substring(0, chop)
-
-            val arraystate = uCSV.split(",")
+          val CSVcontents = builder.toString()		  
+          if( CSVcontents.length > 4800 ) {
+			val arraystate = CSVcontents.split(",")
             val state = arraystate.toList
             status = resumeFromState(state)
           } else {
@@ -404,8 +398,6 @@ final class MersenneTwisterSrz( instanceNumber:Int )
     } );
 
     index = 0
-
-     
   }
 
   @tailrec
@@ -418,7 +410,15 @@ final class MersenneTwisterSrz( instanceNumber:Int )
         builder.append(el)
         builder.append(",")
       }
-      csvl += (builder.toString())
+	  
+	  // Remove the final comma on the final line.
+	  val nextline = builder.toString()	  
+	  val appline = if( (htl._2).isEmpty ) {
+		nextline.substring(0,  nextline.length - 1 )
+	  } else {
+		nextline
+	  }
+      csvl += appline
       CSVlines( csvl , htl._2 ) // recursion
     }
   }
