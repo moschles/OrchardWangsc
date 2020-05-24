@@ -1,8 +1,17 @@
 package orchardwang
-import java.lang.Long.parseLong
 
+import scala.collection.mutable.Queue
 import scala.collection.mutable.ArraySeq
 import scala.annotation.tailrec
+import scala.util.{Try,Success,Failure}
+import scala.io.BufferedSource
+import scala.io.Source
+import java.lang.Long.parseLong
+import java.io.File
+import java.io.BufferedWriter
+import java.io.FileWriter
+import java.io.{FileNotFoundException, IOException}
+
 
 sealed class fauxUINT32( ini:Long )
 {
@@ -11,20 +20,6 @@ sealed class fauxUINT32( ini:Long )
 
   def this() = this(0L)
   def this(n:Int) = this( n.toLong )
-  def this(hex:String) = this(
-    {
-      ((java.lang.Long.parseLong(hex,16)).toLong) & (0x0FFFFFFFFL)
-    }
-  );
-
-  def apply(Li:Long):Long = {
-    x=Li&mask;
-    Li
-  }
-  def apply(i:Int):Int ={
-    x=( i.toLong ) & mask;
-    i
-  }
 
   override def toString: String = {
     val capX:String = f"$x%08x"
@@ -51,6 +46,35 @@ sealed class fauxUINT32( ini:Long )
       (xstep-bstep)
     }
     new fauxUINT32(r)
+  }
+
+
+
+  def parseGraceful(hex:String): Long = {
+    try {
+      (java.lang.Long.parseLong(hex,16)).toLong
+    } catch {
+      case e:Exception => {
+        System.err.println("Bad format of hexadecimal integer {"+hex+"}")
+        (0L)
+      }
+    }
+  }
+
+
+  def setter(Li:Long):Long = {
+    x=Li&mask;
+    Li
+  }
+  def setter(i:Int):Int ={
+    x=( i.toLong ) & mask;
+    i
+  }
+
+  def setter(xhx:String):String = {
+    val overlx:Long = parseGraceful(xhx)
+    setter(overlx)
+    xhx
   }
 
   /*
@@ -162,34 +186,16 @@ sealed class fauxUINT32( ini:Long )
 
 }
 
-
-object Chattm
-{
-  private var debugflag = true
-  def dbg( ds:String ): Boolean =
-  {
-    if( debugflag ) { System.err.println(ds) }
-    debugflag
-  }
-  def on(): Boolean = {
-    debugflag = true
-    debugflag
-  }
-  def off(): Boolean = {
-    debugflag = false
-    debugflag
-  }
-  def isOn(): Boolean = {
-    debugflag
-  }
-}
-
+ 
 
 final class MersenneTwisterSrz( instanceNumber:Int )
 {
   implicit def str2faux( hex:String):fauxUINT32 = {
-    new fauxUINT32(hex)
+    val duck:fauxUINT32 = new fauxUINT32()
+    duck.setter(hex)
+    duck
   }
+
   implicit def int2faux( i:Int ):fauxUINT32 = {
     new fauxUINT32(i)
   }
@@ -227,7 +233,7 @@ final class MersenneTwisterSrz( instanceNumber:Int )
     mt_ini
   }
 
-  Chattm.off()
+ 
 
   //--------------------------------------------------
 
@@ -235,27 +241,30 @@ final class MersenneTwisterSrz( instanceNumber:Int )
     ( seedG(0).peek() , seedG(1).peek() )
   }
 
+  def seed( us:Int ): Unit = {
+    val s1:Long = if( us <0 ) {
+      ((-1) * us).toLong
+    } else {
+      us.toLong
+    }
+    val s2: Long = 0x02BD10fB9L
+    seed( s1 , s2 )
+  }
+
+
   def seed( s1:Long, s2:Long ):Unit = {
     index = 0
     seedG = ArraySeq( new fauxUINT32(s1) , new fauxUINT32(s2) );
     initCompleteSet( seedG ,2)
     userCalledSeed=true
+  }
 
-    if(Chattm.isOn()){
-      println("mt()  after .seed()");
-
-      val mttxt = for(el<-mt) yield {el.toString}
-      val pairs = ((0 until (mt.length)  )) zip mttxt.toList
-      val fewbeg = pairs.take(30)
-      val fewrest = pairs.filter(
-          p => {
-            (p._1 > 29) && ( (p._1 % 7) )==0
-          } );
-      val fewcat = fewbeg++fewrest
-
-      fewcat.foreach( p => println(s"${p._1}  ${p._2}") )
-      println("--------------------")
-    }
+  def seed( s1:String, s2:String ):Unit = {
+    val sA: fauxUINT32 = new fauxUINT32()
+    val sB: fauxUINT32 = new fauxUINT32()
+    sA.setter(s1)
+    sB.setter(s2)
+    seed(sA.peek(), sB.peek())
   }
 
   def nextLong():Long = {
@@ -303,7 +312,7 @@ final class MersenneTwisterSrz( instanceNumber:Int )
   *     This state is returned as a List of Strings.
   * */
   def serializeState():List[String] = {
-    import scala.collection.mutable.Queue
+
     var Q:Queue[String] = Queue.empty
 
     require(userCalledSeed)
@@ -344,31 +353,79 @@ final class MersenneTwisterSrz( instanceNumber:Int )
       val seedA = rnginfo2.head
       val seedB = rnginfo3.head
       val fxindex:fauxUINT32 = sindex
+
       index = (fxindex.peek()).toInt
-      seedG = ArraySeq( new fauxUINT32(seedA) , new fauxUINT32(seedB ) )
+
+      val fxseedA:fauxUINT32 = new fauxUINT32()
+      val fxseedB:fauxUINT32 = new fauxUINT32()
+      fxseedA.setter(seedA)
+      fxseedB.setter(seedB)
+      seedG = ArraySeq( fxseedA , fxseedB )
 
       // Get only the mt() strings.
       val mtform    :List[String]     = state.drop(8)
 
-      // Convert to native class format.
-      val fauxforms  :List[fauxUINT32] = for( v <-mtform ) yield { new fauxUINT32(v) }
+      // Create a list of wooden ducks.
+      val fauxducks  :List[(fauxUINT32,String)] = for( v <-mtform ) yield {
+        (new fauxUINT32(),v)
+      }
 
+      // Convert the pairs to the native format.
+      val fauxforms :List[fauxUINT32] = for( d <- fauxducks ) yield {
+        (d._1).setter( d._2 )
+        d._1
+      }
       // Apply them to the generator's state.
       mt = buildArrSeqfaux(  fauxforms )
+
+      // Allow invocations without tripping require()
+      userCalledSeed = true
     } else {
-      System.err.println("resumeFromState() given a state with invalid format. Seeding from (0,0)")
+      System.err.println(
+        "MersenneTwisterSrz.resumeFromState() provided state had invalid format. Seeding from (0,0)");
       seed(0L,0L)
     }
 
     status
   }
 
+
   /*
   *   Save a snapshot of the generator to a file.
   * */
   def serialPause( output_file_name:String ):Boolean = {
     require(userCalledSeed)
-    false
+    var status:Boolean = false
+    val state = serializeState()
+    val CSVcontent = CSVlines( Queue.empty , state )
+    val ofile = new File(output_file_name)
+    val openHandler:Try[FileWriter] = Try {
+      new FileWriter(ofile)
+    }
+
+    openHandler match {
+      case Success(fw) => {
+        val bw = new BufferedWriter(fw)
+        try {
+          for( line <-CSVcontent ) {
+            bw.write(line)
+            bw.newLine()
+          }
+        } catch {
+          case e:IOException =>
+            val verbose = " , MersenneTwisterSrz.serialPause() interrupted during write."
+            System.err.println(s"$output_file_name" + verbose )
+        } finally {
+          bw.close()
+          status = true
+        }
+      }
+      case Failure(e) =>
+        val verbose = " , MersenneTwisterSrz.serialPause() could not open for writing."
+        System.err.println(s"$output_file_name"+verbose)
+    }
+
+    status
   }
 
   /*
@@ -376,7 +433,48 @@ final class MersenneTwisterSrz( instanceNumber:Int )
   *   that was previously saved to disk by .serialPause()
   *    */
   def serialResume( input_file_name:String ):Boolean = {
-    false
+    var status:Boolean = false
+    val openHandler:Try[BufferedSource] = Try {
+      Source.fromFile(input_file_name)
+    }
+
+    openHandler match {
+      case Success(bs) => {
+        val builder = new StringBuilder
+        try {
+          for (line <- (bs.getLines())) {
+            builder.append(line.trim)
+          }
+        } catch {
+          case e: IOException =>
+            val verbose = " , MersenneTwisterSrz.serialResume() interrupted during read."
+            System.err.println(s"$input_file_name" + verbose)
+        } finally {
+          bs.close()
+          val CSVcontents = builder.toString()
+
+          // Literally remove the final comma.
+          // Seriously.
+          val chop = CSVcontents.length - 1
+          if( chop > 4800 ) {
+            val uCSV = CSVcontents.substring(0, chop)
+
+            val arraystate = uCSV.split(",")
+            val state = arraystate.toList
+            status = resumeFromState(state)
+          } else {
+            val verbose = " , MersenneTwisterSrz.serialResume() wrong file format."
+            System.err.println(s"$input_file_name"+verbose)
+          }
+        }
+      }
+
+      case Failure(e) =>
+        val verbose = " , MersenneTwisterSrz.serialResume() file not found."
+        System.err.println(s"$input_file_name"+verbose)
+    }
+
+    status
   }
 
 
@@ -384,7 +482,8 @@ final class MersenneTwisterSrz( instanceNumber:Int )
 
   private def initSeed( uA:fauxUINT32 ) = {
     val lfu = tr_initSeed( List.empty , uA , pN, 0 )
-    mt = buildArrSeqfaux( lfu )
+    val lfurev = lfu.reverse
+    mt = buildArrSeqfaux( lfurev )
     index = pN;
   }
 
@@ -406,7 +505,7 @@ final class MersenneTwisterSrz( instanceNumber:Int )
 
   private def initCompleteSet(
                                 bigSeed:ArraySeq[fauxUINT32] ,
-                                seedLength:Int ) =  {
+                                seedLength:Int ):Unit =  {
     val birthdate:fauxUINT32 = "19650218"
     val Ymagic:fauxUINT32 = 1664525L
     val Zmagic:fauxUINT32 = 1566083941L
@@ -417,6 +516,7 @@ final class MersenneTwisterSrz( instanceNumber:Int )
 
     initSeed(birthdate)
 
+    
     val mixfront = ktop until 0 by (-1)
     for( k <- mixfront ) {
       val mtic = mt(i).copy()
@@ -475,27 +575,25 @@ final class MersenneTwisterSrz( instanceNumber:Int )
       val yardi:fauxUINT32 = mt(z) xor xA
       mt(i) = yardi or 0
 
-      if (Chattm.isOn()) {
-        if (i < 3) {
-          println(s"   q= $q")
-          println(s"   z= $z")
-          println("x =" + x.toString)
-          println("xA =" + xA.toString)
-          println("mt(i) =" + mt(i).toString)
-        }
-      }
-
     } );
 
     index = 0
 
-    if(Chattm.isOn()){
-      val mttxt = for(el<-mt) yield {el.toString}
-      val pairs = ((0 until (mt.length)  )) zip mttxt.toList
-      val fewbeg = pairs.take(30)
-      println("mt()  after .twist()");
-      fewbeg.foreach( p => println(s"${p._1}  ${p._2}") )
-      println("--------------------")
+     
+  }
+
+  @tailrec
+  private def CSVlines( csvl:Queue[String] , consume:List[String] ):Queue[String] = consume match {
+    case Nil => csvl
+    case _ => {
+      val htl = consume.splitAt(8)
+      val builder = new StringBuilder
+      for( el <- htl._1 ) {
+        builder.append(el)
+        builder.append(",")
+      }
+      csvl += (builder.toString())
+      CSVlines( csvl , htl._2 ) // recursion
     }
   }
 

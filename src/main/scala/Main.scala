@@ -26,7 +26,9 @@ object Chatter
 	}
 }
 
-object Main 
+
+
+sealed class vegasPlotTests 
 {
 	@tailrec
 	def tr_countOccurances (co:Char , v:List[Char] , accum:Int ):Int = v match {
@@ -53,11 +55,9 @@ object Main
 			ret
 	}
 
-	def main(args: Array[String]): Unit = 
+	def performCharacterOccurance(args: Array[String]): Unit = 
 	{
-		Chatter.on()
-		Chatter.dbg("Entered main.")
-
+		
  		
 		val infileName = 
 			if( args.length > 0 ) args(0) 
@@ -117,6 +117,57 @@ object Main
 				fWriter.close()
 			}
 		}
+	}
+
+}
+
+object Main 
+{
+	def main(args: Array[String]): Unit = 
+	{
+		Chatter.off()		
+		if( args.size > 1 ) {
+		  val azero = args(0)
+		  val aone = args(1)
+		  println(s"args(0)= $azero")
+		  println(s"args(1)= $aone")
+		  val RNG = MersenneTwisterSrz.getInstance()
+
+		  if( args(0) == "-s" ) {
+			println("Starting a new seeded generator.")
+			RNG.seed(0xAEEDEF89L , 0x76D43210L )
+			val bigrands = for (el <- (0 until 5000 )) yield {
+			  RNG.nextLong()
+			}
+			val lastr = bigrands.take(30)
+			val lastrtxt = for (el <- lastr) yield {
+			  f"$el%08x"
+			}
+			for (el <- lastrtxt) println("  " + el)
+			println("Saving generator state to file " + args(1))
+			RNG.serialPause( args(1) )
+		  }
+
+
+		  if( args(0)== "-r" ) {
+			println("Resuming from state file " + args(1))
+			if( RNG.serialResume( args(1) ) ) {
+			  val bigrands = for (el <- (0 until 5000)) yield {
+				RNG.nextLong()
+			  }
+			  val lastr = bigrands.takeRight(25)
+			  val lastrtxt = for (el <- lastr) yield {
+				f"$el%08x"
+			  }
+			  for (el <- lastrtxt) println("  " + el)
+			}
+		  }
+
+
+
+		} else println("No command line args.")
+		
+		
 	}
 
 }
