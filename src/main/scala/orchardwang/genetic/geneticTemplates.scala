@@ -176,3 +176,5 @@ abstract class GeneticAlgorithm( populationsize:Int , mxgenerations:Int )
   def nextGeneration( generation:ArraySeq[Agent],
                       fitnesses:ArraySeq[Double]): ArraySeq[Agent]
 }
+
+//
