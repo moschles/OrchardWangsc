@@ -1,15 +1,15 @@
 package orchardwang
 package neural
 
-import scala.collection.mutable.Stack
-
+import scala.math
 
 class NeuralNetwork( n:Int )
 {
   private val nodes:Int = n;
+  private final val e:Double = scala.math.E
   val connectMatrix:Array[Array[Boolean]] = Array.ofDim[Boolean](n,n)
   val w:Array[Array[Double]]        = Array.ofDim[Double](n,n)
-  val biases:Array[Double] = Array.ofDim[Double](n)
+  val bias:Array[Double] = Array.ofDim[Double](n)
   val alphaspikes:Array[Double]   = Array.ofDim[Double](n)
   val betaspikes:Array[Double]    = Array.ofDim[Double](n)
   /*
@@ -24,30 +24,118 @@ class NeuralNetwork( n:Int )
   //  skip over them during .cycle()
   val iter:Array[Int] = (0 until n).toArray
   val connections:Array[Int] = for(i<-iter) yield{-1}
-  val connectCache:Array[Stack[Int]] = for(i<-iter) yield{
-    NeuralNetwork.getEmptyIntegerStack
+  val connectCache:Array[List[Int]] = for(i<-iter) yield{
+    (List(901)).take(0)
   }
+
+
+  /* * */
+  /* constructor */
+  for( i <-iter){ w(i)(i) = 0.0 }
+  /* * */
+
 
   def this() = this(8)
+
   def size:Int = nodes
 
-  def cycle():Unit = ???
-  def applyInput( i:Int , signal:Double ):Unit = ???
-  def readOutput( i:Int , signal:Double ):Unit = ???
-  def quiescent():Unit = ???
+  def applyInput( i:Int , signal:Double ):Unit = direction match {
+    case 'a' => betaspikes(i) = signal
+    case _ => alphaspikes(i) = signal
+  }
 
-  private def cycle_direction( input:Array[Double] , output:Array[Double] ) = ???
-}
+  /*
+    direction = 'a';  consider beta and output to alpha
+    cycle()
+    direction = 'b'  because cycle() toggled it.  Output is still in alpha
+
+    reverse
+
+    direction = 'b';  consider alpha and output to beta
+    cycle()
+    direction = 'a'  because cycle() toggled it.  Output is still in beta
+   */
+  def nodeOutput( i:Int ):Double = direction match {
+    case 'a' => betaspikes(i)
+    case _ => alphaspikes(i)
+  }
 
 
-// We need an inelegant work-around to overcome
-// the problem of initializing an empty Stack inside of
-// the constructor of a class.
-object NeuralNetwork
-{
-  def getEmptyIntegerStack:Stack[Int] = {
-    val eistk:Stack[Int] = Stack(901)
-    eistk.pop()
-    eistk
+  def quiescent():Unit = {
+    /* Following Orchard+Wang, a quiescent network is set so all spikes are 0.5
+        A suppressed or "non-firing" neuron actually emits a  signal,
+            0.0 < signal <= 0.5
+     */
+    for( i <-iter ) {
+      alphaspikes(i) = 0.5
+      betaspikes(i) = 0.5
+    }
+  }
+
+
+  def cycle():Unit = {
+    val fxnsel = cycle_direction(direction)
+    fxnsel( direction )
+    dtoggle()
+  }
+
+  def weightless():Unit = {
+    for {
+      i <- iter
+      j <- iter
+    } w(i)(j) = 0.0
+  }
+
+  def noBias():Unit = {
+    for( n <- iter ) bias(n) = 0.0
+  }
+
+  def applySynapse( fromNode:Int , toNode:Int , weight:Double ):Unit =
+    if( fromNode != toNode ) {
+      val i = toNode
+      val j = fromNode
+      w(i)(j) = weight
+    }
+
+
+
+  def setSynapses( syns:List[(Int,Int,Double)]  ):Unit = {
+    for( weight <- syns ) {
+      applySynapse(weight._1  , weight._2 , weight._3)
+    }
+  }
+  // * // * //
+
+  private def cycle_direction( d:Char ):(Char=>Unit) = d match {
+    case 'a' => cycle_BA
+    case _ => cycle_AB
+  }
+
+  private def cycle_AB( d:Char ):Unit = {
+    for(  i <- iter ) {
+      betaspikes(i) = activation( i , alphaspikes )
+    }
+  }
+
+  private def cycle_BA( d:Char ):Unit = {
+    for(  i <- iter ) {
+      alphaspikes(i) = activation( i , betaspikes )
+    }
+  }
+
+
+  private def activation( i:Int , insignals:Array[Double] ):Double = {
+    val weightedsigs = for( j <- iter ) yield {  (w(i)(j)) * insignals(j) }
+    val t = weightedsigs.sum + bias(i)
+
+    1.0 / (  1.0 + scala.math.pow(e , (-t) )   )
+  }
+  private def dtoggle():Unit = {
+    val nd = if(direction=='a') 'b' else 'a'
+    direction = nd
   }
 }
+
+
+//
+
