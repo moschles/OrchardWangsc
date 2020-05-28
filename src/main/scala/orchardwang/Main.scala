@@ -8,6 +8,7 @@ import scala.annotation.tailrec
 import vegas._
 
 import orchardwang.util._
+import orchardwang.neural._
 
 sealed class vegasPlotTests 
 {
@@ -106,54 +107,114 @@ sealed class vegasPlotTests
 
 object Main 
 {
-	def main(args: Array[String]): Unit = 
-	{
-		if( args.size > 1 ) {
-		  val azero = args(0)
-		  val aone = args(1)
-		  
-		  debug {
-			println(s"args(0)= $azero")
-			println(s"args(1)= $aone")
-		  }
-		  
-		  val RNG = MersenneTwisterSrz.getInstance()
+	def main( args:Array[String]): Unit = {
+    testNeuralNetwork(args)
+  }
 
-		  if( args(0) == "-s" ) {
-			println("Starting a new seeded generator.")
-			RNG.seed(0xAEEDEF89L , 0x76D43210L )
-			val bigrands = for (el <- (0 until 5000 )) yield {
-			  RNG.nextLong()
-			}
-			val lastr = bigrands.take(30)
-			val lastrtxt = for (el <- lastr) yield {
-			  f"$el%08x"
-			}
-			for (el <- lastrtxt) println("  " + el)
-			println("Saving generator state to file " + args(1))
-			RNG.serialPause( args(1) )
-		  }
+  def testNeuralNetwork( args:Array[String] ): Unit = {
+    if( args.size > 3 ) {
+      val nodes:Int = (java.lang.Integer.parseInt(args(0) ) ).toInt
+      val rngs1:Long = java.lang.Long.parseLong(args(1) ).toLong
+      val rngs2:Long = java.lang.Long.parseLong(args(2)  ).toLong
+      val cycles:Int = (java.lang.Integer.parseInt(args(3))  ).toInt
+
+      val rng = MersenneTwisterSrz.getInstance()
+      rng.seed( rngs1 , rngs2 )
+
+      val nn = new NeuralNetwork( nodes )
+      val allreentry:IndexedSeq[(Int,Int,Double)] =
+        for{
+          i <- (0 until nodes )
+          j <- (0 until nodes)
+        } yield ( (i,j, 14.0*(rng.nextDouble()-0.5) ) )
+
+      val zeroconn:IndexedSeq[(Int,Int,Double)] = for(
+        j <- (1 until nodes) ) yield {
+        (0,j,  -2.2 )  }
+
+      val oneconn:IndexedSeq[(Int,Int,Double)] = for(
+        j <- (2 until nodes) ) yield {
+        (1,j, 2.2 )  }
+
+      nn.weightless()
+      nn.setSynapses( allreentry.toList )
+      nn.setSynapses( oneconn.toList ++ zeroconn.toList )
+
+      nn.noBias()
+      nn.quiescent( )
+      nn.applyInput(0, 0.0 )
+      nn.applyInput(1, 1.0 )  // Excite network
+
+      println("Cycle 0")
+      print( nn.toString() )
+
+      for( cyc <- (1 to cycles)) {
+        nn.cycle()
+        println(" ")
+        println("=========================")
+        println("Cycle "+ cyc.toString )
+        print( nn.toString() )
+      }
+    } else println("No command line args.")
+  }
+
+  def testMersenne( args:Array[String]): Unit = {
+    if( args.size > 1 ) {
+      val azero = args(0)
+      val aone = args(1)
+      println(s"args(0)= $azero")
+      println(s"args(1)= $aone")
+      val RNG = MersenneTwisterSrz.getInstance()
+
+      if( args(0) == "-s" ) {
+        println("Starting a new seeded generator.")
+        RNG.seed(0xAEEDEF89L , 0x76D43210L )
+        val bigrands = for (el <- (0 until 5000 )) yield {
+          RNG.nextLong()
+        }
+        val lastr = bigrands.take(30)
+        val lastrtxt = for (el <- lastr) yield {
+          f"$el%08x"
+        }
+        for (el <- lastrtxt) println("  " + el)
+        println("Saving generator state to file " + args(1))
+        RNG.serialPause( args(1) )
+      }
 
 
-		  if( args(0)== "-r" ) {
-			println("Resuming from state file " + args(1))
-			if( RNG.serialResume( args(1) ) ) {
-			  val bigrands = for (el <- (0 until 5000)) yield {
-				RNG.nextLong()
-			  }
-			  val lastr = bigrands.takeRight(25)
-			  val lastrtxt = for (el <- lastr) yield {
-				f"$el%08x"
-			  }
-			  for (el <- lastrtxt) println("  " + el)
-			}
-		  }
+      if( args(0)== "-r" ) {
+        println("Resuming from state file " + args(1))
+        if( RNG.serialResume( args(1) ) ) {
+          val bigrands = for (el <- (0 until 5000)) yield {
+            RNG.nextLong()
+          }
+          val lastr = bigrands.takeRight(25)
+          val lastrtxt = for (el <- lastr) yield {
+            f"$el%08x"
+          }
+          for (el <- lastrtxt) println("  " + el)
+        }
+      }
+
+      if( args(0)== "-ni" ) {
+        val rng = MersenneTwisterSrz.getInstance()
+        rng.seed( 0x123L , 0x234L )
+
+        // Generate the first 750,000 numbers.
+        for( i <-  (0 until 750000)) {
+          val r = rng.nextLong()
+        }
+
+        // Print the next 30
+        for( i <- (0 until 30) ) {
+          val r = rng.nextLong()
+          println( f"$r%08x" )
+        }
+      }
 
 
 
-		} else println("No command line args.")
-		
-		
-	}
+    } else println("No command line args.")
+  }
 
 }

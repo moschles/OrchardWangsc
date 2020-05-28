@@ -30,9 +30,11 @@ abstract class Genotype
    * Mutate this genotype and return the mutated version.
    *
    * @param rate. The rate of mutation.
+   * @param params variable number of integer arguments.
+   *                Optionally specify different kinds of mutation. 
    * @return a new Genotype after mutation.
    */
-   def mutate( rate:Double ):Genotype
+   def mutate( rate:Double , params:Int* ):Genotype
 
   /**
    * Cross 'this' genotype with 'that' genotype.

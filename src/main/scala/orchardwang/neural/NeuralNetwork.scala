@@ -6,7 +6,7 @@ import scala.math
 class NeuralNetwork( n:Int )
 {
   private val nodes:Int = n;
-  private final val e:Double = scala.math.E
+
   val connectMatrix:Array[Array[Boolean]] = Array.ofDim[Boolean](n,n)
   val w:Array[Array[Double]]        = Array.ofDim[Double](n,n)
   val bias:Array[Double] = Array.ofDim[Double](n)
@@ -16,15 +16,19 @@ class NeuralNetwork( n:Int )
   *  'b'  => next .cycle() outputs to betaspikes
   *  'a'  => next .cycle() outputs to alphaspikes
   *    */
-  private var direction:Char = 'b'
+  private final var direction:Char = 'b'
+  private final val iter:Array[Int] = (0 until n).toArray
+  private final val newline:String = new String(  System.getProperty("line.separator") )
+  private final val e:Double = scala.math.E
+
 
   // As this class forces an n-by-n representation, many of the nodes
   //  will not even be connected to the network, or have sparse connectivity.
   //  The following serve as caches to discover orphaned nodes and
   //  skip over them during .cycle()
-  val iter:Array[Int] = (0 until n).toArray
-  val connections:Array[Int] = for(i<-iter) yield{-1}
-  val connectCache:Array[List[Int]] = for(i<-iter) yield{
+
+  private val connections:Array[Int] = for(i<-iter) yield{-1}
+  private val connectCache:Array[List[Int]] = for(i<-iter) yield{
     (List(901)).take(0)
   }
 
@@ -63,8 +67,9 @@ class NeuralNetwork( n:Int )
 
   def quiescent():Unit = {
     /* Following Orchard+Wang, a quiescent network is set so all spikes are 0.5
-        A suppressed or "non-firing" neuron actually emits a  signal,
-            0.0 < signal <= 0.5
+        A suppressed or "non-firing" neuron actually emits a positive signal,
+
+                    0.0 < signal <= 0.5
      */
     for( i <-iter ) {
       alphaspikes(i) = 0.5
@@ -104,6 +109,63 @@ class NeuralNetwork( n:Int )
       applySynapse(weight._1  , weight._2 , weight._3)
     }
   }
+
+  override def toString():String = {
+    val builder:StringBuilder = new StringBuilder
+    builder.append("weights")
+    builder.append(newline)
+    builder.append("  ")
+    for( c <- (0 until size)) {
+      builder.append("      ")
+      builder.append( columnInt(c) )
+    }
+    for{
+      i <- iter
+      j <- iter
+    } builder.append( ( weightPrinter(i,j) ) )
+
+    builder.append(newline)
+    builder.append("Biases :")
+    builder.append(newline)
+    for( i <- iter ) {
+      if( i > 0 ) {
+        builder.append(",")
+      }
+      builder.append(i.toString + "=")
+      val ithB = bias(i)
+      builder.append( f"$ithB%.3f" )
+    }
+    builder.append(newline)
+    direction match {
+      case 'a' => builder.append("direction : beta -> alpha")
+      case _ => builder.append("direction : alpha -> beta")
+    }
+
+    builder.append(newline)
+    builder.append("alphaspikes")
+    for( i <- iter ) {
+      if( i > 0 ) {
+        builder.append(",")
+      }
+      builder.append(i.toString + "=")
+      val ithB = alphaspikes(i)
+      builder.append( f"$ithB%.3f" )
+    }
+
+    builder.append(newline)
+    builder.append("betaspikes")
+    for( i <- iter ) {
+      if( i > 0 ) {
+        builder.append(",")
+      }
+      builder.append(i.toString + "=")
+      val ithB = betaspikes(i)
+      builder.append( f"$ithB%.3f" )
+    }
+
+    builder.toString()
+  }
+
   // * // * //
 
   private def cycle_direction( d:Char ):(Char=>Unit) = d match {
@@ -134,8 +196,41 @@ class NeuralNetwork( n:Int )
     val nd = if(direction=='a') 'b' else 'a'
     direction = nd
   }
+
+  private def columnInt( ci:Int ):String = if( ci > 9) {
+      ci.toString
+  } else {
+     " " + ci.toString
+  }
+
+  private def columnDouble( cd:Double ):String = {
+    val pad = if( scala.math.abs(cd) >= 10.0 ) {
+      ""
+    } else {
+      " "
+    }
+    val wval = if( cd < 0.0 ) {
+      val fm = f"$cd%.3f"
+      " "+fm
+    } else {
+       val fm = f"$cd%.3f"
+      " +"+fm
+    }
+    (pad+wval)
+  }
+
+  private def weightPrinter( i:Int , j:Int ):String = {
+    val gutter =if( j == 0 ) {
+      (new String(newline)) + columnInt(i)
+    } else {
+      ""
+    }
+
+    val wstr = if( i == j) {"        "} else { columnDouble(w(i)(j)) }
+    (gutter + wstr)
+  }
+
 }
 
 
 //
-
