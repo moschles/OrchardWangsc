@@ -16,11 +16,10 @@ class NeuralNetwork( n:Int )
   *  'b'  => next .cycle() outputs to betaspikes
   *  'a'  => next .cycle() outputs to alphaspikes
   *    */
-  private final var direction:Char = 'b'
   private final val iter:Array[Int] = (0 until n).toArray
   private final val newline:String = new String(  System.getProperty("line.separator") )
   private final val e:Double = scala.math.E
-
+  private var direction:Char = 'b'
 
   // As this class forces an n-by-n representation, many of the nodes
   //  will not even be connected to the network, or have sparse connectivity.
