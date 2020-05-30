@@ -4,6 +4,12 @@ import scala.io.Source
 import java.io.{FileNotFoundException, IOException}
 import java.io.File
 import java.io.PrintWriter
+import java.io.FileOutputStream
+import java.io.OutputStream
+import java.io.DataOutputStream
+import java.io.FileInputStream
+import java.io.InputStream
+import java.io.DataInputStream
 import scala.annotation.tailrec
 import vegas._
 
@@ -105,11 +111,114 @@ sealed class vegasPlotTests
 
 }
 
+///////////////////////
+//   Main object
 object Main 
 {
 	def main( args:Array[String]): Unit = {
-    testNeuralNetwork(args)
+		testNetworkDynamics( args )
+	}
+
+  def testNetworkDynamics( args:Array[String] ):Unit =
+  {
+    if( args.length > 3 ) {
+      val nodes: Int = (java.lang.Integer.parseInt(args(0))).toInt
+      val rngs1: Long = java.lang.Long.parseLong(args(1)).toLong
+      val rngs2: Long = java.lang.Long.parseLong(args(2)).toLong
+      val cycles: Int = (java.lang.Integer.parseInt(args(3))).toInt
+
+      val rng = MersenneTwisterSrz.getInstance()
+      rng.seed(rngs1, rngs2)
+
+      val nn = new NeuralNetwork(nodes)
+      val allreentry: IndexedSeq[(Int, Int, Double)] =
+        for {
+          i <- (0 until nodes)
+          j <- (0 until nodes)
+        } yield ((i, j, 14.0 * (rng.nextDouble() - 0.5)))
+
+
+      nn.weightless()
+      nn.setSynapses(allreentry.toList)
+      nn.noBias()
+
+      val nninput: Array[Double] = Array.ofDim(nodes)
+      for (n <- 0 until nodes) {
+        val rfire = rng.nextDouble()
+        nninput(n) = if( rfire < 0.6 ) 1.0 else 0.0
+      }
+
+
+      val nndp = new NNDynamicsParams(
+        nn,
+        nninput,
+        cycles,
+        "dynamics.png",
+        580, 400);
+
+      val dmachine = new NetworkDynamics(nndp)
+      dmachine.performCycles()
+      dmachine.writeToDisk()
+    } else {
+      println( "{total nodes}  {seed1}  {seed2}  {total cycles}" )
+    }
   }
+
+  
+  def testFloatingPointFiles( args:Array[String] ): Unit = {
+    if( args.length > 1 ) {
+      if( args(0) == "-w" ) {
+        val rng = MersenneTwisterSrz.getInstance()
+        rng.seed( 378 , 864 )
+        val sn = for( i <- (0 until 5)) yield{ 9.0*(rng.nextDouble()-0.5) }
+        sn.foreach( k => println(f"$k%.13f")  )
+
+        val outputstm:OutputStream = new FileOutputStream( args(1) )
+        val dos:DataOutputStream = new DataOutputStream(outputstm)
+        dos.writeLong(1010101L)
+        dos.writeLong(3232538L)
+        dos.writeLong(8765309L)
+        for( k <- sn ) {
+          dos.writeDouble(k)
+        }
+        dos.close()
+        outputstm.close()
+      }
+
+      if( args(0) == "-r" ) {
+        val binaryFileIdentifier:Array[Long] = Array(
+        1010101L,3232538L,8675309L       );
+        val wrongFileFormat:String = new String(  args(1) + " , wrong file format" )
+        val inputstm:InputStream = new FileInputStream( args(1) )
+        val dis:DataInputStream = new DataInputStream(inputstm)
+        val ident:Array[Long] = Array.ofDim[Long](3)
+        try{
+          ident(0) = dis.readLong()
+          ident(1) = dis.readLong()
+          ident(2) = dis.readLong()
+        } catch {
+          case e:Exception => System.err.println( wrongFileFormat )
+        }
+
+        val paird = ident zip binaryFileIdentifier
+        val comp = for( p<-paird if( p._1 == p._2)) yield {1}
+        if( comp.length == 3 ) {
+          val content =
+          for( i <- (0 until 5) ) yield { dis.readDouble() }
+          content.foreach( k => println(f"read $k%.13f")  )
+        } else {
+          System.err.println(wrongFileFormat)
+        }
+        dis.close()
+        inputstm.close()
+      }
+    } else {
+      println("No command line arguments.")
+      println("  -r inputfile")
+      println("  -w outputfilename")
+    }
+  }
+
 
   def testNeuralNetwork( args:Array[String] ): Unit = {
     if( args.size > 3 ) {
