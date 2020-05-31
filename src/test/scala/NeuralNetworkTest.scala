@@ -13,6 +13,11 @@ class FSNeuralNetworkTest extends FunSuite {
 
 class NeuralNetworkTest extends FlatSpec with Matchers
 {
+
+	private def printlion( slion:Any ):Unit = {
+		// println(slion)
+	}
+
   "NeuralNetwork" should "return size with .size()" in {
     val nn = new NeuralNetwork(23)
     val sz = nn.size
@@ -72,7 +77,7 @@ class NeuralNetworkTest extends FlatSpec with Matchers
     }
 
     for( osig <- allout ){
-      println(osig)
+      printlion(osig.toString)
     }
 
     for( osig <- allout ){
@@ -142,7 +147,7 @@ class NeuralNetworkTest extends FlatSpec with Matchers
     for( c <- (0 until 9) ) {
       nn.cycle()
       fourhist(c) = nn.nodeOutput(4)
-      println(fourhist(c))
+      printlion(fourhist(c))
     }
 
     for( c <- (0 until 9) ) {
@@ -193,9 +198,9 @@ class NeuralNetworkTest extends FlatSpec with Matchers
     val exciteout = for( i <- (0 until 9) ) yield {
       nn.nodeOutput(i)
     }
-    println("exciteout")
+    printlion("exciteout")
     for( osig <- exciteout ){
-      //println(osig)
+      printlion(osig)
     }
 
     nn.noBias()
@@ -210,17 +215,17 @@ class NeuralNetworkTest extends FlatSpec with Matchers
     val suppressout = for( i <- (0 until 9) ) yield {
       nn.nodeOutput(i)
     }
-    println("suppressout")
-    for( osig <- suppressout ){
-      //println(osig)
-    }
+   
+	printlion("suppressout")
+    suppressout.foreach( printlion(_) )
+   
 
     val diffs = for( d <- (2 until 9) ) yield {
       scala.math.abs( suppressout(d) - exciteout(d) )
     }
 
-    println("differences")
-    for( d <- diffs ) println(d);
+    printlion("differences")
+    for( d <- diffs ) printlion(d);
 
     // We need "most" of the differences to exceed 0.1
     val exceeded = diffs.map (
