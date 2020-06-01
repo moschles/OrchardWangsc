@@ -78,7 +78,10 @@ class FeedForwardNN( inputTotal:Int , hiddenTotal:Int , outputTotal:Int )
     layer match {
       case 'O' => w_HtO(i)(j) = weight
       case 'H' => w_ItH(i)(j) = weight
-      case _ =>  System.err.println( "FeedForwardNN.applySynapse()  bad layer param.")
+      case _ =>  {
+        System.err.println( "FeedForwardNN.applySynapse()  bad layer param.")
+        require( i < -99 )
+      }
     }
   }
 
@@ -88,7 +91,10 @@ class FeedForwardNN( inputTotal:Int , hiddenTotal:Int , outputTotal:Int )
     layer match {
       case 'O' => Obias(n) = bias
       case 'H' => Hbias(n) = bias
-      case _ =>  System.err.println( "FeedForwardNN.applyBias()  bad layer param.")
+      case _ =>{
+        System.err.println( "FeedForwardNN.applyBias()  bad layer param.")
+        require( n < -99 )
+      }
     }
   }
 
