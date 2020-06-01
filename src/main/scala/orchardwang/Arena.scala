@@ -62,8 +62,12 @@ class Arena ( w:Int , h:Int , foodtotal:Int) extends Environment
   def addAllFood():Int = tr_dropFood(0)
 
   def addFoodAt( fx:Int, fy:Int ):Unit = {
-    val loca:(Int,Int) = (fx,fy)
-    food += loca
+    if( fx < width ) {
+      if ( fy < height) {
+        val loca: (Int, Int) = (fx, fy)
+        food += loca
+      }
+    }
   }
 
   def clear():Unit = {   food.clear()   }
