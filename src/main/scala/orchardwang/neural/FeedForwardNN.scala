@@ -46,6 +46,12 @@ class FeedForwardNN( inputTotal:Int , hiddenTotal:Int , outputTotal:Int )
     Ispikes(i) = signal
   }
 
+  def setInputPattern( pattern:List[Double] ):Unit = {
+    val enumer = Iiter.toList
+    val enumsig:List[(Int,Double)] = enumer zip pattern
+    for( p <- enumsig ) { applyInput(p._1 , p._2) }
+  }
+
   def nodeOutput( i:Int , layer:Char ):Double = layer match {
     case 'O' => Ospikes(i)
     case 'H' => Hspikes(i)
@@ -53,6 +59,13 @@ class FeedForwardNN( inputTotal:Int , hiddenTotal:Int , outputTotal:Int )
     case _ => Ospikes(i)
   }
 
+  def getOutputPattern:Array[Double] = {
+    val deepcopy:Array[Double] = Array.ofDim( output_sz )
+    for( i <- (0 until output_sz) ) {
+      deepcopy(i) = Ospikes(i)
+    }
+    deepcopy
+  }
 
   def weightless():Unit = {
     for {
@@ -86,8 +99,6 @@ class FeedForwardNN( inputTotal:Int , hiddenTotal:Int , outputTotal:Int )
   }
 
   def applyBias( layer:Char, n:Int , bias:Double ):Unit = {
-    require(n>0)
-    require( layer != 'I' )
     layer match {
       case 'O' => Obias(n) = bias
       case 'H' => Hbias(n) = bias
@@ -98,7 +109,18 @@ class FeedForwardNN( inputTotal:Int , hiddenTotal:Int , outputTotal:Int )
     }
   }
 
-  def setSynapses( layer:Char , syns:List[(Int,Int,Double)]  ):Unit = ???
+  def setSynapses( layer:Char , syns:List[(Int,Int,Double)]  ):Unit = {
+    require( layer != 'I' )
+    layer match {
+      case 'O' | 'H' => for( w <- syns ) {
+        applySynapse(layer, w._1 , w._2 , w._3 )
+      }
+      case _ =>{
+        System.err.println( "FeedForwardNN.setSynapses()  bad layer param.")
+        require( layer == 'O' )
+      }
+    }
+  }
 
   override def toString():String = {
     val ret = s"FeedForwardNN($input_sz , $hidden_sz , $output_sz)"

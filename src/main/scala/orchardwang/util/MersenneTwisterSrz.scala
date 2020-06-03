@@ -461,7 +461,7 @@ object MersenneTwisterSrz
   def total( ):Int = this.synchronized{ batchOfInstances.length }
 
   def getInstance(n:Int = 0):MersenneTwisterSrz = this.synchronized{
-    require( n <= (total) )
+    require( n < (total) )
     batchOfInstances(n)
   }
 
