@@ -3,6 +3,7 @@ package neural
 
 import scala.math
 
+
 class NeuralNetwork( n:Int )
 {
   private val nodes:Int = n;

@@ -5,6 +5,11 @@ import java.lang.reflect.GenericArrayType
 import scala.collection.LinearSeq
 import scala.collection.mutable.ArraySeq
 
+
+
+
+
+
 /**
  *  The physical environment in which an agent is tested for fitness.
  */
@@ -26,6 +31,13 @@ abstract class Phenotype
  */
 abstract class Genotype
 {
+  /**
+   * Create a "garden of Eden" genotype.
+   * These are genotypes used in the first generation of a genetic algorithm.
+   * @return  a new Genotype with initial random genes.
+   */
+  def eden():Genotype
+
   /**
    * Mutate this genotype and return the mutated version.
    *
@@ -59,6 +71,20 @@ abstract class Genotype
    * @return the length of this genotype.
    */
   def length:Int
+
+  /**
+   * Return the gene at the given location.
+   * @param loc  the locus as an index in the genotype sequence
+   * @return  the gene located there, as a Double
+   */
+  def nucleotideBase( loc:Int ):Double
+
+  /**
+   * Return the gene at the given location.
+   * @param loc the locus as an index in the genotype sequence
+   * @return the gene located there, as an Int
+   */
+  def inucleotideBase( loc:Int ):Int
 
   def deepCopy():Genotype
 }
