@@ -102,6 +102,9 @@ class NeuralNetwork( n:Int )
       w(i)(j) = weight
     }
 
+  def applyBias( node:Int , b:Double ):Unit = {
+	bias(node) = b
+  }
 
 
   def setSynapses( syns:List[(Int,Int,Double)]  ):Unit = {

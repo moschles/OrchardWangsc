@@ -8,6 +8,7 @@ object CrossoverMethod {
   final val cutBack:Int = 3
   final val homologousFront:Int  =5
   final val homologousBack:Int = 7
+  final val blendingInheritance:Int = 9
 }
 
 object MutateMethod {
@@ -26,20 +27,20 @@ object MutateMethod {
 *   synapse update network. 9 neurons.   Feed-forward. (4 input. 4 hidden. 1 output)
 *   bias update network.  6  neurons.  Feed-forward.  (2 input. 3 hidden. 1 output)
 *
-*   6     biases
+*   4     biases   (exclude 2 on input layer)
 *   9     synaptic weights
-*   9     biases
+*   5     biases    (exclude 4 on input layer)
 *   20    synaptic weights
 *   11    biases
 *   110   synaptic weights
 * -------
-*  165     total genes
+*  159     total genes
 * */
 
 class NWBgenes(  createGenes:Array[Double] , callingRNG:MersenneTwisterSrz) extends Genotype
 {
   private val rand:MersenneTwisterSrz = callingRNG
-  private final val lockedLength:Int = 165
+  private final val lockedLength:Int = 159
   private final val maxbias:Double = 166.0    // This is 15*11 + 1
   private final val maxSynapse:Double = 15.0
   private val gene:Array[Double] = Array.ofDim[Double](lockedLength)
@@ -69,6 +70,9 @@ class NWBgenes(  createGenes:Array[Double] , callingRNG:MersenneTwisterSrz) exte
   def mutate( rate:Double , params:Int* ):Genotype = {
     // For the time being, only implement point-mutations.
     // Ignore 'params'
+    if( !(params.isEmpty)  ) {
+      System.err.println("NWBgenes.mutate() ignoring supplied params.")
+    }
     val mutgenes = Array.ofDim[Double](lockedLength)
     for( g <- (0 until lockedLength) ) {
       val thislocus = rand.nextDouble()
@@ -109,6 +113,8 @@ class NWBgenes(  createGenes:Array[Double] , callingRNG:MersenneTwisterSrz) exte
     val newbases:Array[Double] = Array.ofDim[Double](lockedLength)
 
     umethod match {
+        /*
+        * Gene comes from a random parent.  Genes remain in-place.  */
       case CrossoverMethod.homologousFront | CrossoverMethod.homologousBack =>
         for(b <- 0 until lockedLength ) {
           val r = rand.nextInt()
@@ -118,6 +124,16 @@ class NWBgenes(  createGenes:Array[Double] , callingRNG:MersenneTwisterSrz) exte
               that.nucleotideBase(b)
             }
         }
+
+        /*
+        * A black rabbit mates with a white rabbit , and its offspring are grey.
+        * This does not happen in real organisms. It could be useful to a G.A. */
+      case CrossoverMethod.blendingInheritance =>
+        for(b <- 0 until lockedLength ) {
+          newbases(b) =  0.5*( gene(b) + that.nucleotideBase(b) )
+        }
+
+        /* The genes of 'that' go in the front portion. */
       case CrossoverMethod.cutFront => {
         require(aparams.length > 1)
         val cuttingLocus = aparams(1)
@@ -128,6 +144,8 @@ class NWBgenes(  createGenes:Array[Double] , callingRNG:MersenneTwisterSrz) exte
           newbases(b) = gene(b)
         }
       }
+
+      /* The genes of 'that' go in the ending portion. */
       case CrossoverMethod.cutBack => {
         require(aparams.length > 1)
         val cuttingLocus = aparams(1)
@@ -208,7 +226,7 @@ class NWBgenes(  createGenes:Array[Double] , callingRNG:MersenneTwisterSrz) exte
  */
 object NWBgenes
 {
-  private final val sequences:List[Int] = List(  6,  9,  9, 20, 11,110 )
+  private final val sequences:List[Int] = List(  4,9,5,20,11,110 )
   private final val seqtype:List[Char]  = List('b','w','b','w','b','w' )
   private val pairs = sequences zip seqtype
   private val reps:List[String] = for( p <-pairs) yield{ p._2.toString * (p._1)}

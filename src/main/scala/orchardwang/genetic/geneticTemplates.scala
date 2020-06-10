@@ -18,13 +18,7 @@ abstract  class Environment
 
 }
 
-/**
- * The phenotype of an agent.
- */
-abstract class Phenotype
-{
 
-}
 
 /**
  * The genotype of an agent.
@@ -89,6 +83,15 @@ abstract class Genotype
   def deepCopy():Genotype
 }
 
+
+/**
+ * The phenotype of an agent.
+ */
+abstract class Phenotype
+{
+  def expressFromGenes( geno:Genotype ):Unit
+}
+
 /**
  * An agent class.
  * Use this for a single "candidate" ,
@@ -120,12 +123,16 @@ abstract class Agent( initgenotype:Genotype )
    */
   def express( g:Genotype ):Phenotype
 
+
   /**
    * Mutate this Agent by a given mutation rate 'rate'
-   * @param rate the supplied mutation rate.
-   * @return A new Agent that is mutated and expressed.
+   *
+   * @param rate   the rate of mutation.
+   * @param params variable number of integer arguments.
+   *                 Optionally specify different kinds of mutation.
+   * @return the new Agent that is mutated and expressed.
    */
-  def mutate( rate: Double):Agent
+  def mutate( rate: Double , params:Int*  ):Agent
 
   /**
    * Mate this Agent with 'mother' agent to create a child Agent,
