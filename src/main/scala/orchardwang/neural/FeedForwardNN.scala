@@ -2,6 +2,8 @@ package orchardwang
 package neural
 
 import scala.math
+import scala.collection.mutable.Queue
+import scala.collection.mutable.Stack
 
 /**
  * Feed-forward neural network class.
@@ -32,6 +34,16 @@ class FeedForwardNN( inputTotal:Int , hiddenTotal:Int , outputTotal:Int )
   private final val Oiter:Array[Int] = (0 until output_sz).toArray
   private final val Hiter:Array[Int] = (0 until hidden_sz).toArray
   private final val Iiter:Array[Int] = (0 until input_sz).toArray
+
+  /*
+  Internal storage of weights follows the convention  w_ij  where i is the
+  RECEIVING (post-synaptic) neuron  and j is the SENDING (pre-synaptic) neuron.
+
+  However, arguments to methods are written backwards to
+  conform to  ( from_node ,  to_node ) . This is more natural and and sensible
+  when passing arguments   but makes little sense when viewing a diagram of
+   the network.
+  * */
 
   // * // * //
 
@@ -137,6 +149,108 @@ class FeedForwardNN( inputTotal:Int , hiddenTotal:Int , outputTotal:Int )
     }
   }
 
+
+  /**
+   * flattenToLinear() is used in internal conversions to-and-from Genotype
+   * representations.  THis is NOT used for disk backup and restore.
+   * @return An array containing the neuron biases concatenated with the
+   *         network's synaptic weights.
+   */
+  def flattenToLinear():Array[Double] = {
+    val sz = genomeLength
+    val Q: Queue[Double] = Queue.empty[Double]
+
+    for (b <- Hbias) {
+      Q += b
+    }
+
+    for (b <- Obias){
+      Q += b
+    }
+
+    val ijconn = for{
+      i <- (0 until hidden_sz)
+      j <- (0 until input_sz )
+    } yield(  (i,j) )
+
+    for( w <- ijconn ) {
+      Q += w_ItH( w._1 )( w._2 )
+    }
+
+    val ijout = for{
+      i <- (0 until output_sz)
+      j <- (0 until hidden_sz )
+    } yield(  (i,j) )
+
+    for( w <- ijconn ) {
+      Q += w_HtO( w._1 )( w._2 )
+    }
+
+    require( Q.length == sz )
+    val ret = (Q.toList).toArray
+    require( ret.length == sz )
+    ret
+  }
+
+
+  /**
+   *  growFromLinear() is used in internal conversions to-and-from Genotype
+   *  representations.  THis is NOT used for disk backup and restore.
+   *
+   * @param larr , Must be an array with the biases in front concatenated with the
+   *             synaptic weights on the back.
+   * @return  improperly sized Array 'larr' will fail requirements.
+   */
+  def growFromLinear( larr:Array[Double]):Unit = {
+    val sz = genomeLength
+    require( larr.length == sz )
+
+    // Use a stack to avoid calculating any indeces, at all.
+    val stkrev:Stack[Double] = Stack.empty[Double]
+    stkrev.pushAll( larr )
+    require( stkrev.size  == sz )
+    val stk:Stack[Double] = stkrev.reverse
+    require( stk.size  == sz )
+
+    for ( b <-  (0 until Hbias.length ) ){
+      Hbias(b) = stk.pop()
+    }
+
+    require( stk.isEmpty == false )
+
+
+    for ( b <-  (0 until Obias.length ) ){
+      Obias(b) = stk.pop()
+    }
+
+    require( stk.isEmpty == false )
+
+    val ijconn = for{
+      i <- (0 until hidden_sz)
+      j <- (0 until input_sz )
+    } yield(  (i,j) )
+
+    for( w <- ijconn ) {
+      w_ItH( w._1 )( w._2 ) = stk.pop()
+    }
+
+    require( stk.isEmpty == false )
+
+    val ijout = for{
+      i <- (0 until output_sz)
+      j <- (0 until hidden_sz )
+    } yield(  (i,j) )
+
+    for( w <- ijconn ) {
+      w_HtO( w._1 )( w._2 ) = stk.pop()
+    }
+
+    require( stk.isEmpty )
+  }
+
+
+  // * // *  //
+
   private def Oactivation( i:Int , insignals:Array[Double] ):Double = {
     val weightedsigs = for( j <- Hiter ) yield {  (w_HtO(i)(j)) * insignals(j) }
     val t = weightedsigs.sum + Obias(i)
@@ -151,5 +265,12 @@ class FeedForwardNN( inputTotal:Int , hiddenTotal:Int , outputTotal:Int )
 
   private def logisticFxn( t:Double ):Double = {
     1.0 / (  1.0 + scala.math.pow(e , (-t) )   )
+  }
+
+  private def genomeLength : Int = {
+    val sz_biases: Int = output_sz + hidden_sz
+    val sz_weights: Int = (input_sz * hidden_sz) + (hidden_sz * output_sz)
+
+    { sz_biases + sz_weights }
   }
 }
