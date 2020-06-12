@@ -2,8 +2,12 @@ package orchardwang
 package neural
 
 import scala.math
+import scala.collection.mutable.Queue
+import scala.collection.mutable.Stack
 
-
+/*
+  RNN  class.   Recurrent Neural Network with zero diagonal connectivity matrix.
+ */
 class NeuralNetwork( n:Int )
 {
   private val nodes:Int = n;
@@ -169,6 +173,73 @@ class NeuralNetwork( n:Int )
     builder.toString()
   }
 
+  /**
+   * flattenToLinear() is used in internal conversions to-and-from Genotype
+   * representations.  THis is NOT used for disk backup and restore.
+   * @return An array containing the neuron biases concatenated with the
+   *         network's synaptic weights.
+   */
+  def flattenToLinear():Array[Double] =  {
+    val Q: Queue[Double] = Queue.empty[Double]
+
+    for (b <- bias) {
+      Q += b
+    }
+
+    val ijconn = for{
+      i <- (0 until nodes)
+      j <- (0 until nodes )
+      if( i != j )
+    } yield(  (i,j) )
+
+    for( s <- ijconn ) {
+      Q += w( s._1 )( s._2 )
+    }
+
+    require( Q.length == genomeLength )
+    val ret = (Q.toList).toArray
+    require( ret.length == genomeLength )
+    ret
+  }
+
+  /**
+   *  growFromLinear() is used in internal conversions to-and-from Genotype
+   *  representations.  THis is NOT used for disk backup and restore.
+   *
+   * @param larr , Must be an array with the biases in front concatenated with the
+   *             synaptic weights on the back.
+   * @return  improperly sized Array 'larr' will fail requirements.
+   */
+  def growFromLinear( larr:Array[Double]):Unit = {
+    val sz = genomeLength
+    require( larr.length == sz )
+
+    // Use a stack to avoid calculating any indeces, at all.
+    val stkrev:Stack[Double] = Stack.empty[Double]
+    stkrev.pushAll( larr )
+    require( stkrev.size  == sz )
+    val stk:Stack[Double] = stkrev.reverse
+    require( stk.size  == sz )
+
+    for ( b <-  (0 until bias.length ) ){
+      bias(b) = stk.pop()
+    }
+
+    require( stk.isEmpty == false )
+
+    val ijconn = for{
+      i <- (0 until nodes )
+      j <- (0 until nodes )
+      if( i != j )
+    } yield(  (i,j) )
+
+    for( s <- ijconn ) {
+      w( s._1 )( s._2 ) = stk.pop()
+    }
+
+    require( stk.isEmpty )
+  }
+
   // * // * //
 
   private def cycle_direction( d:Char ):(Char=>Unit) = d match {
@@ -198,6 +269,13 @@ class NeuralNetwork( n:Int )
   private def dtoggle():Unit = {
     val nd = if(direction=='a') 'b' else 'a'
     direction = nd
+  }
+
+
+  private def genomeLength:Int = {
+    val weighttotal:Int = ((nodes * nodes) - nodes)
+    val biasestotal:Int = nodes
+    ( weighttotal + biasestotal )
   }
 
   private def columnInt( ci:Int ):String = if( ci > 9) {

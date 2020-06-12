@@ -177,12 +177,12 @@ class FeedForwardNN( inputTotal:Int , hiddenTotal:Int , outputTotal:Int )
       Q += w_ItH( w._1 )( w._2 )
     }
 
-    val ijout = for{
+    val out__ij = for{
       i <- (0 until output_sz)
       j <- (0 until hidden_sz )
     } yield(  (i,j) )
 
-    for( w <- ijconn ) {
+    for( w <- out__ij ) {
       Q += w_HtO( w._1 )( w._2 )
     }
 
@@ -236,12 +236,12 @@ class FeedForwardNN( inputTotal:Int , hiddenTotal:Int , outputTotal:Int )
 
     require( stk.isEmpty == false )
 
-    val ijout = for{
+    val out_ijX = for{
       i <- (0 until output_sz)
       j <- (0 until hidden_sz )
     } yield(  (i,j) )
 
-    for( w <- ijconn ) {
+    for( w <- out_ijX ) {
       w_HtO( w._1 )( w._2 ) = stk.pop()
     }
 
