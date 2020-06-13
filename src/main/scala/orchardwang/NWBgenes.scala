@@ -185,7 +185,7 @@ class NWBgenes(  createGenes:Array[Double] , callingRNG:MersenneTwisterSrz) exte
    * @param loc the locus as an index in the genotype sequence
    * @return the gene located there, as an Int
    */
-  def inucleotideBase( loc:Int ):Int=0
+  def inucleotideBase( loc:Int ):Int  = (-1)
 
   /**
    * Nominally, any child genotype inherits the random number generator

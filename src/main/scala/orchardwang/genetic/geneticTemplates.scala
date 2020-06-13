@@ -2,12 +2,8 @@ package orchardwang
 package genetic
 
 import java.lang.reflect.GenericArrayType
-import scala.collection.LinearSeq
 import scala.collection.mutable.ArraySeq
-
-
-
-
+import scala.collection.immutable.IndexedSeq
 
 
 /**
@@ -141,9 +137,9 @@ abstract class Agent( initgenotype:Genotype )
    * @param params Variable number of arguments for the type of crossover desired,
    *               the number of children, and so on.
    * @param mother cross mother with 'this' Agent
-   * @return A linear sequence of one or more children.
+   * @return A sequence of one or more children.
    */
-  def crossover( mother:Agent , params:Int*  ):LinearSeq[Agent]
+  def crossover( mother:Agent , params:Int*  ):IndexedSeq[Agent]
 
   // Generic getters and setters.
   def getGenotype:Genotype = genotype
@@ -167,11 +163,20 @@ abstract class FitnessMachine
    * Test every Agent in 'gen' within its associated Environment 'envs'.
    * Produce a list of fitnesses of these runs.
    *
-   * @param gen a linear sequence of Agents to test.
+   * @param gen a sequence of Agents to test.
    * @param envs  one or more Environments to test fitness.
-   * @return a linear sequence of fitness values for the associated ith agent.
+   * @return a sequence of fitness values for the associated ith agent.
    */
-  def runAllTests( gen:LinearSeq[Agent] , envs:LinearSeq[Environment] ):LinearSeq[Double]
+  def runAllTests( gen:IndexedSeq[Agent] , envs:IndexedSeq[Environment] ):IndexedSeq[Double]
+
+  /**
+   * Place an agent into an environment to perform a single fitness test.
+   *
+   * @param agent an Agent to test for performance.
+   * @param env and Environment within which to perform.
+   * @return the resulting fitness from agent performing in env
+   */
+  def fitnessTest( agent:Agent , env:Environment ):Double
 }
 
 /**

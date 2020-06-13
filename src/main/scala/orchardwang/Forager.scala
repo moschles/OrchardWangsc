@@ -1,13 +1,8 @@
 package orchardwang
 
-import scala.collection.LinearSeq
+import scala.collection.immutable.IndexedSeq
 import orchardwang.genetic._
 
-/*
-* private val genotype:Genotype = initgenotype.deepCopy()
-  private val phenotype:Phenotype = express(initgenotype)
-  private var fitness:Double =0.0
-  * */
 
 class Forager ( initgenotype:Genotype ) extends Agent( initgenotype )
 {
@@ -48,7 +43,12 @@ class Forager ( initgenotype:Genotype ) extends Agent( initgenotype )
    *                 Optionally specify different kinds of mutation.
    * @return the new Agent that is mutated and expressed.
    */
-  def mutate( rate: Double , params:Int*  ):Agent = ???
+  def mutate( rate: Double , params:Int*  ):Agent = {
+    val previousGenes:Genotype = getGenotype
+    val mutantGenes = previousGenes.mutate( rate, params:_* )
+    val mutantForager:Forager = new Forager(mutantGenes)
+    mutantForager
+  }
 
   /**
    * Mate this Agent with 'mother' agent to create a child Agent,
@@ -59,8 +59,30 @@ class Forager ( initgenotype:Genotype ) extends Agent( initgenotype )
    * @param mother cross mother with 'this' Agent
    * @return A linear sequence of one or more children.
    */
-  def crossover( mother:Agent , params:Int*  ):LinearSeq[Agent] = ???
+  def crossover( mother:Agent , params:Int*  ):IndexedSeq[Agent] = {
+    val fatherG:Genotype = this.getGenotype
+    val motherG:Genotype = mother.getGenotype
+    val childG:Genotype = fatherG.crossover( motherG , params:_* )
+    val childForager:Forager = new Forager(childG)
+    val childColl:List[Forager] = List( childForager )
+    childColl.toIndexedSeq
+  }
+
+  def setOrientation(  orient:(Int,Int,Int) ):Unit = {
+    posX = orient._1
+    posY = orient._2
+    compass = orient._3
+  }
+
+  def getOrientation : (Int,Int,Int)  = {
+    val ret:(Int,Int,Int) = (posX,posY,compass)
+    ret
+  }
 }
+
+//
+
+
 
 
 //
