@@ -1,16 +1,19 @@
 package orchardwang
 
 import scala.collection.immutable.IndexedSeq
-import orchardwang.neural._
 import orchardwang.genetic._
-
+import orchardwang.neural._
 
 /**
- * Instantiate FitnessMachine to ArenaSimualator.
+ * Instantiate FitnessMachine to ArenaSimulator.
  * Target to Foragers operating in Arenas.
  */
 class ArenaSimulator extends FitnessMachine[Forager,Arena]
 {
+  private final val lifetime = 3000
+  private final val expiretime = 91
+  private final val angleOffsetTests = 32
+
   /**
    * Test every Agent in 'gen' within its associated Environment 'envs'.
    * Produce a list of fitnesses of these runs.
@@ -48,6 +51,92 @@ class ArenaSimulator extends FitnessMachine[Forager,Arena]
   def fitnessTest( agent:Forager , env:Arena ):Double = {
     0.0
   }
+
+  // * // * //
+
+  /*
+  The Forager will try to obtain food in an Arena with a broken angle sensor.
+    The angle sensor is giving the Forager a consistently false reading of the angle
+    to the nearest food.  The Forager must adapt on-the-fly to this disparity.
+    Hypothetically, this adaptation is due to synaptic plasticity of its neural network.
+  * */
+  /*
+        Each organism has a “brain”, a neural network with  ~four~(sic) , five
+      inputs and two outputs. The two output nodes specify the
+      action that the organism will take: (0,0) means do nothing;
+      (0,1) means turn 90 deg right; (1,0) means turn 90 deg left; and (1,1)
+      means move forward.
+   */
+  private def forageWithOffset( agent:Forager , env:Arena , angleOffset:Double ):Double = {
+    val inputPattern: Array[Double] = Array.ofDim[Double](5)
+    var eaten = 0
+    var prevAction: (Int, Int) = (0, 0)
+    var expCountdown = expiretime
+
+    env.setRandIndex(agent.getRandIndex)
+    agent.setOrientation((49, 49, 1))
+
+
+    for (artime <- (0 until lifetime)) {
+      if (env.isEmpty) {
+        env.addAllFood()
+        expCountdown = expiretime
+      } else {
+        if (expCountdown < 1) {
+          env.clear()
+          env.addAllFood()
+          expCountdown = expiretime
+        }
+      }
+
+      /* Perceive environment from current position.
+    * @return  ._1  nearest food's distance ,
+   *           ._2   nearests food's angle ,
+   *           ._3   0=food at distance, 1=agent is on top of a food now
+      * */
+      val orient:(Int, Int, Int) = agent.getOrientation
+      val rawPercept: (Double, Double, Int) = env.percept(orient._1, orient._2, orient._3)
+
+      inputPattern(0) = (prevAction._1).toDouble
+      inputPattern(1) = (prevAction._2).toDouble
+      if (orient._3 == 1) {
+        eaten = eaten + 1
+        inputPattern(2) = -1.0 // angle to nearest food
+        inputPattern(3) = 0.0 // distance to nearest food
+        inputPattern(4) = 1.0 // eating signal
+      } else {
+        inputPattern(2) = badSensor(rawPercept._2, angleOffset) // angle to nearest food
+        inputPattern(3) = rawPercept._1 // distance to nearest food
+        inputPattern(4) = 0.0 // eating signal
+      }
+
+      /* Have the Forager make a decision based on the current inputPattern */
+      val action: (Int, Int) = agent.decisionActionCycle(inputPattern)
+
+      // !TODO!   Update the Forager 'agent' in this Arena.
+    }
+
+    eaten.toDouble
+  }
+
+
+  private def badSensor( rawAngle:Double , offset:Double ):Double = {
+    val badAngle = rawAngle + offset
+    val ret = if( badAngle > 1.0  ) {
+      val overtwist = badAngle - 1.0
+      ((-1.0)+overtwist)
+    } else {
+      if( badAngle < (-1.0) ) {
+        val undertwist = badAngle + 1.0
+        (1.0+undertwist)
+      } else {
+        badAngle
+      }
+    }
+    ret
+  }
+
+
 }
 
 //

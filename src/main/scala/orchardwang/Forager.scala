@@ -2,13 +2,14 @@ package orchardwang
 
 import scala.collection.immutable.IndexedSeq
 import orchardwang.genetic._
-
+import orchardwang.neural._
 
 class Forager ( initgenotype:Genotype ) extends Agent( initgenotype )
 {
   private var compass = 0
   private var posX = 2
   private var posY = 2
+  private var randomGeneratorIdx = 0
   // * //
 
   /**
@@ -77,6 +78,52 @@ class Forager ( initgenotype:Genotype ) extends Agent( initgenotype )
   def getOrientation : (Int,Int,Int)  = {
     val ret:(Int,Int,Int) = (posX,posY,compass)
     ret
+  }
+
+  def getRandIndex:Int = randomGeneratorIdx
+
+  def setRandIndex( ri:Int ):Unit = {
+    val deepcopy:Array[Int] = Array.ofDim[Int](1)
+    deepcopy(0) = ri
+    randomGeneratorIdx = deepcopy(0)
+  }
+
+
+  def decisionActionCycle( currentPercept:Array[Double] ):(Int,Int) = {
+    require( currentPercept.length == 5 )
+    val biology:Option[BioNetworks] = asBioNetType( getPhenotype )
+    val action:(Int,Int) =  biology match {
+      case Some(bn) => {
+        val brain:NeuralNetwork = bn.brain
+        brain.quiescent()
+        /*
+         !TODO!
+         1 Apply curentPercept() to neurons 0 thru 4 as "input"
+         2 Cycle the network using a synaptic and bias update network.
+         3 Read the action pair from neurons 9 and 10
+         4 Round those outputs to integer 0 or 1.
+         5 Send that integer pair back as the result of this match clause.
+         */
+
+        (1,1)
+      }
+      case None => {
+        System.err.println("Forager.decisionActionCycle() expected BioNetworks derived class of Phenotype.")
+        val wo = 1
+        val du = 2
+        require(wo==du)
+        (0,0)
+      }
+    }
+
+    action
+  }
+
+  // * // * //
+
+  private def asBioNetType( p:Phenotype ):Option[BioNetworks] = p match {
+    case ( bionet:BioNetworks ) =>  Some(bionet)
+    case _ => None
   }
 }
 

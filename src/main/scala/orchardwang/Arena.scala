@@ -27,6 +27,7 @@ class Arena ( w:Int , h:Int , foodtotal:Int) extends Environment
   private val foodPerDrop:Int = foodtotal
   private val food:HashSet[(Int,Int)] = HashSet.empty[(Int,Int)]
   private val distance_factor = 1.0 / arena_sz
+  private var randomGeneratorIdx = 0
 
   // * // * //
 
@@ -76,13 +77,20 @@ class Arena ( w:Int , h:Int , foodtotal:Int) extends Environment
 
   def walls:(Int,Int) = (width,height)
 
+  def getRandIndex:Int = randomGeneratorIdx
+
+  def setRandIndex( ri:Int ):Unit = {
+    val immcopy = ri
+    var deepcopy = immcopy+3
+    randomGeneratorIdx = (deepcopy-3)
+  }
 
   // * // * //
   @tailrec
   private def tr_dropFood(unique:Int):Int = if( unique>=foodPerDrop) {
     unique
   } else {
-    val rng = MersenneTwisterSrz.getInstance()
+    val rng = MersenneTwisterSrz.getInstance(randomGeneratorIdx)
     val dx = rng.nextInt() % width
     val dy = rng.nextInt() % height
     val coord:(Int,Int) = (dx,dy)
@@ -144,5 +152,7 @@ class Arena ( w:Int , h:Int , foodtotal:Int) extends Environment
   private def dotProduct( v:(Double,Double) , u:(Double,Double) ):Double = {
     (v._1*u._1  + v._2*u._2 )
   }
+
+
 }
 
