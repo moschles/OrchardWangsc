@@ -1,17 +1,15 @@
 package orchardwang
 
 import scala.collection.immutable.IndexedSeq
-import orchardwang.genetic._
 import orchardwang.neural._
+import orchardwang.genetic._
+
 
 /**
- * Fitness tests over large populations is the most  computationally expensive
- * portion of a genetic algorithm.
- *
- * This FitnessMachine is relegated to its own class,
- *  since this will likely be multithreaded.
+ * Instantiate FitnessMachine to ArenaSimualator.
+ * Target to Foragers operating in Arenas.
  */
-class ArenaSimulator extends FitnessMachine
+class ArenaSimulator extends FitnessMachine[Forager,Arena]
 {
   /**
    * Test every Agent in 'gen' within its associated Environment 'envs'.
@@ -21,16 +19,16 @@ class ArenaSimulator extends FitnessMachine
    * @param envs  one or more Environments to test fitness.
    * @return a linear sequence of fitness values for the associated ith agent.
    */
-  def runAllTests( gen:IndexedSeq[Agent] , envs:IndexedSeq[Environment] ):IndexedSeq[Double] = {
+  def runAllTests( gen:IndexedSeq[Forager] , envs:IndexedSeq[Arena]):IndexedSeq[Double] = {
     val lgen = gen.toList
 
-    val lenvs:List[Environment] = if( gen.length == envs.length ) {
+    val lenvs:List[Arena] = if( gen.length == envs.length ) {
       envs.toList
     } else {
       for( e <- envs.toList ) yield {envs(0)}
     }
 
-    val agentWithenviro:List[(Agent,Environment)] = lgen zip lenvs
+    val agentWithenviro:List[(Forager,Arena)] = lgen zip lenvs
 
     /* For the time being, perform this task laboriously as a single thread. */
     val ret = for( p <- agentWithenviro ) yield {
@@ -47,9 +45,12 @@ class ArenaSimulator extends FitnessMachine
    * @param env an Environment within which to perform.
    * @return the resulting fitness from agent performing in env
    */
-  def fitnessTest( agent:Agent , env:Environment ):Double = { 0.0 }
+  def fitnessTest( agent:Forager , env:Arena ):Double = {
+    0.0
+  }
 }
 
 //
+
 
 

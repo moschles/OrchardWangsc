@@ -157,7 +157,7 @@ abstract class Agent( initgenotype:Genotype )
  * This FitnessMachine is relegated to its own class,
  *  since this will likely be multithreaded.
  */
-abstract class FitnessMachine
+abstract class FitnessMachine[   A <: Agent , E <: Environment   ]
 {
   /**
    * Test every Agent in 'gen' within its associated Environment 'envs'.
@@ -167,7 +167,7 @@ abstract class FitnessMachine
    * @param envs  one or more Environments to test fitness.
    * @return a sequence of fitness values for the associated ith agent.
    */
-  def runAllTests( gen:IndexedSeq[Agent] , envs:IndexedSeq[Environment] ):IndexedSeq[Double]
+  def runAllTests( gen:IndexedSeq[A] , envs:IndexedSeq[E] ):IndexedSeq[Double]
 
   /**
    * Place an agent into an environment to perform a single fitness test.
@@ -176,7 +176,7 @@ abstract class FitnessMachine
    * @param env and Environment within which to perform.
    * @return the resulting fitness from agent performing in env
    */
-  def fitnessTest( agent:Agent , env:Environment ):Double
+  def fitnessTest( agent:A , env:E ):Double
 }
 
 /**
@@ -200,21 +200,21 @@ abstract class FitnessMachine
  * The calling code decides whether these sequences
  * are mutable or immutable states.
  *
- * @param populationsize
- * @param mxgenerations
+ * @param populationsize The fixed population size.
+ * @param mxgenerations  Number of generations to cycle.
  * @see FitnessMachine
  */
-abstract class GeneticAlgorithm( populationsize:Int , mxgenerations:Int )
+abstract class GeneticAlgorithm[   A <: Agent , E <: Environment   ]( populationsize:Int , mxgenerations:Int )
 {
   private val population:Int = populationsize
   private val maxgenerations:Int = mxgenerations
-  val tester:FitnessMachine
+  val tester:FitnessMachine[A,E]
 
   def this() = this(100,1000)
   def this(n:Int) = this( n , 1000)
 
-  def nextGeneration( generation:ArraySeq[Agent],
-                      fitnesses:ArraySeq[Double]): ArraySeq[Agent]
+  def nextGeneration( generation:ArraySeq[A],
+                      fitnesses:ArraySeq[Double]): ArraySeq[E]
 }
 
 //
