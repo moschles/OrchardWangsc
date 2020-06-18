@@ -105,6 +105,7 @@ class Forager ( initgenotype:Genotype ) extends Agent( initgenotype )
          5 Send that integer pair back as the result of this match clause.
          */
 
+
         (1,1)
       }
       case None => {

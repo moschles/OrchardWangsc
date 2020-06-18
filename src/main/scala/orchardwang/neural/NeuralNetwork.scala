@@ -26,15 +26,13 @@ class NeuralNetwork( n:Int )
   private final val e:Double = scala.math.E
   private var direction:Char = 'b'
 
-  // As this class forces an n-by-n representation, many of the nodes
-  //  will not even be connected to the network, or have sparse connectivity.
-  //  The following serve as caches to discover orphaned nodes and
-  //  skip over them during .cycle()
-
-  private val connections:Array[Int] = for(i<-iter) yield{-1}
-  private val connectCache:Array[List[Int]] = for(i<-iter) yield{
-    (List(901)).take(0)
-  }
+  /*
+  This RNN is going to have plastic synapses for incremental learning over an
+  agent's lifetime. The synaptic update function requires the total of
+  weighted input signals into a neuron, independent of the bias parameter.
+  This TWI  ("total Weighted Input")  must be cached, or we would be forced
+  to recalculate them again during the alteration of synapses. */
+  private val TWI_cache:Array[Double] = Array.ofDim[Double](nodes)
 
 
   /* * */
@@ -68,6 +66,13 @@ class NeuralNetwork( n:Int )
     case _ => alphaspikes(i)
   }
 
+  def nodeBias( i:Int ):Double = bias(i)
+
+  def Msynapse( fromNode:Int , toNode:Int  ):Double = w(toNode)(fromNode)
+
+  def totalWeightedInput( i:Int ):Double = TWI_cache(i)
+
+  def totalWeightedInputS:Array[Double] = TWI_cache
 
   def quiescent():Unit = {
     /* Following Orchard+Wang, a quiescent network is set so all spikes are 0.5
@@ -106,8 +111,10 @@ class NeuralNetwork( n:Int )
       w(i)(j) = weight
     }
 
+
+
   def applyBias( node:Int , b:Double ):Unit = {
-	bias(node) = b
+	  bias(node) = b
   }
 
 
@@ -261,11 +268,14 @@ class NeuralNetwork( n:Int )
 
 
   private def activation( i:Int , insignals:Array[Double] ):Double = {
-    val weightedsigs = for( j <- iter ) yield {  (w(i)(j)) * insignals(j) }
-    val t = weightedsigs.sum + bias(i)
+    val weightedsigs = for( j <- iter if(i !=j) ) yield {  (w(i)(j)) * insignals(j) }
+    val twi = weightedsigs.sum   // Total weighted input
+    val t = twi + bias(i)
+    TWI_cache(i) = twi
 
     1.0 / (  1.0 + scala.math.pow(e , (-t) )   )
   }
+
   private def dtoggle():Unit = {
     val nd = if(direction=='a') 'b' else 'a'
     direction = nd
