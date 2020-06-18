@@ -96,18 +96,28 @@ class Forager ( initgenotype:Genotype ) extends Agent( initgenotype )
       case Some(bn) => {
         val brain:NeuralNetwork = bn.brain
         brain.quiescent()
-        /*
-         !TODO!
-         1 Apply curentPercept() to neurons 0 thru 4 as "input"
-         2 Cycle the network using a synaptic and bias update network.
-         3 Read the action pair from neurons 9 and 10
-         4 Round those outputs to integer 0 or 1.
-         5 Send that integer pair back as the result of this match clause.
-         */
 
+        /*   1 Apply curentPercept() to neurons 0 thru 4 as "input" */
+        for( cp <- (0 until 5) ) {
+          brain.applyInput( cp , currentPercept(cp)  )
+        }
 
-        (1,1)
+        /* 2 Cycle the brain network using a synaptic and bias update network.*/
+        bn.cycleWithLearning( )
+
+        /* 3 Read the action pair from neurons 9 and 10 */
+        val brainDec:NeuralNetwork = bn.brain
+        val decisionLayer:(Double,Double) =
+          (brainDec.nodeOutput(9) , brainDec.nodeOutput(10));
+
+        /* 4 Round those outputs to integer 0 or 1. */
+        val decision:(Int,Int) =
+          (roundSignal(decisionLayer._1) , roundSignal(decisionLayer._2))
+
+        /*5 Send that integer pair back as the result of this match clause. */
+        decision
       }
+
       case None => {
         System.err.println("Forager.decisionActionCycle() expected BioNetworks derived class of Phenotype.")
         val wo = 1
@@ -126,6 +136,9 @@ class Forager ( initgenotype:Genotype ) extends Agent( initgenotype )
     case ( bionet:BioNetworks ) =>  Some(bionet)
     case _ => None
   }
+
+  private def roundSignal( s:Double ):Int = if( s < 0.50000001 ) { 0 } else { 1 }
+
 }
 
 //
