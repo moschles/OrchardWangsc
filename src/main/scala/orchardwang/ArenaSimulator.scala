@@ -72,6 +72,7 @@ class ArenaSimulator extends FitnessMachine[Forager,Arena]
     var eaten = 0
     var prevAction: (Int, Int) = (0, 0)
     var expCountdown = expiretime
+    var arenaWalls:(Int,Int) = env.walls
 
     env.setRandIndex(agent.getRandIndex)
     agent.setOrientation((49, 49, 1))
@@ -88,13 +89,13 @@ class ArenaSimulator extends FitnessMachine[Forager,Arena]
           expCountdown = expiretime
         }
       }
+      val orient:(Int, Int, Int) = agent.getOrientation
+
 
       /* Perceive environment from current position.
     * @return  ._1  nearest food's distance ,
    *           ._2   nearests food's angle ,
-   *           ._3   0=food at distance, 1=agent is on top of a food now
-      * */
-      val orient:(Int, Int, Int) = agent.getOrientation
+   *           ._3   0=food at distance, 1=agent is on top of a food now * */
       val rawPercept: (Double, Double, Int) = env.percept(orient._1, orient._2, orient._3)
 
       inputPattern(0) = (prevAction._1).toDouble
@@ -113,7 +114,20 @@ class ArenaSimulator extends FitnessMachine[Forager,Arena]
       /* Have the Forager make a decision based on the current inputPattern */
       val action: (Int, Int) = agent.decisionActionCycle(inputPattern)
 
-      // !TODO!   Update the Forager 'agent' in this Arena.
+      /* Update the Forager 'agent' in this Arena. */
+      /* The two output nodes specify the
+          action that the organism will take:
+          (0,0) means do nothing;
+          (0,1) means turn 90 deg right;
+          (1,0) means turn 90 deg left;
+           and (1,1) means move forward.*/
+      (action._1 , action._2)  match {
+        case (0,0) => agent.doNothing()
+        case (0,1) => agent.turnRight()
+        case (1,0) => agent.turnLeft()
+        case (1,1) => agent.move( arenaWalls._1 , arenaWalls._2 )
+        case (_,_) => agent.doNothing()
+      }
     }
 
     eaten.toDouble

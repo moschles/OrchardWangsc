@@ -69,6 +69,70 @@ class Forager ( initgenotype:Genotype ) extends Agent( initgenotype )
     childColl.toIndexedSeq
   }
 
+
+/**
+ * Coordinates in an Arena follow mathematical notation, where
+ * +Y goes up the chalkboard, and -Y goes down the chalkboard.
+ * Agent directions follow this axis convention.
+ *    agdir = 0   agent is facing in +X
+ *    agdir = 1   agent is facing in +Y
+ *    agdir = 2   agent is facing in -X
+ *    adgir = 3   agent is facing in -Y   */
+  def turnRight():Unit = {
+    val newcompass = compass match {
+      case 0 => 3
+      case 1 => 0
+      case 2 => 1
+      case 3 => 2
+      case _ => compass
+    }
+    compass = newcompass
+  }
+
+  def turnLeft():Unit = {
+    val newcompass = compass match {
+      case 0 => 1
+      case 1 => 2
+      case 2 => 3
+      case 3 => 0
+      case _ => compass
+    }
+    compass = newcompass
+  }
+
+  def move( xWall:Int , yWall:Int ): Unit = {
+    val newPosition:(Int,Int) = compass match {
+      case 0 => if( (posX+1) < xWall ) {
+          (posX+1 , posY)
+        } else {
+          (posX , posY)
+        }
+      case 1 => if( (posY+1) < yWall ) {
+          (posX , posY+1)
+        } else {
+          (posX , posY)
+        }
+      case 2 => if( (posX-1) >= 0 ) {
+          (posX-1 , posY)
+        } else {
+          (posX , posY)
+        }
+      case 3 => if( (posY-1) >= 0 ) {
+           (posX , posY-1)
+        } else {
+          (posX , posY)
+        }
+      case _ => ( (posX,posY) )
+    }
+
+    posX = newPosition._1
+    posY = newPosition._2
+  }
+
+  def doNothing():Unit = {
+    //
+  }
+
   def setOrientation(  orient:(Int,Int,Int) ):Unit = {
     posX = orient._1
     posY = orient._2

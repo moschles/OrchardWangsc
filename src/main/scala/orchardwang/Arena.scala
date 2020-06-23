@@ -1,10 +1,9 @@
 package orchardwang
 
-
-import orchardwang.genetic._
-import orchardwang.util._
 import scala.collection.mutable.HashSet
 import scala.annotation.tailrec
+import orchardwang.genetic._
+import orchardwang.util._
 
 /**
  * Coordinates in an Arena follow mathematical notation, where
