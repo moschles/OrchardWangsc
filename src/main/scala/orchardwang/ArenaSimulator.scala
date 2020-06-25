@@ -3,6 +3,7 @@ package orchardwang
 import scala.collection.immutable.IndexedSeq
 import orchardwang.genetic._
 import orchardwang.neural._
+import orchardwang.util._
 
 /**
  * Instantiate FitnessMachine to ArenaSimulator.
@@ -49,7 +50,17 @@ class ArenaSimulator extends FitnessMachine[Forager,Arena]
    * @return the resulting fitness from agent performing in env
    */
   def fitnessTest( agent:Forager , env:Arena ):Double = {
-    0.0
+    val rindex = agent.getRandIndex
+    val rng = MersenneTwisterSrz.getInstance( rindex )
+    val all_offsets = for( o <- (0 until angleOffsetTests) ) yield {
+      val r = (rng.nextDouble()) * 1.6
+      ( r - 0.8 )
+    }
+    val individualF = for( lt <- (0 until angleOffsetTests) ) yield {
+      forageWithOffset( agent , env , all_offsets(lt) )
+    }
+    val aot:Double = angleOffsetTests.toDouble
+    ( individualF.sum / aot )
   }
 
   // * // * //
@@ -75,6 +86,7 @@ class ArenaSimulator extends FitnessMachine[Forager,Arena]
     var arenaWalls:(Int,Int) = env.walls
 
     env.setRandIndex(agent.getRandIndex)
+    env.clear()
     agent.setOrientation((49, 49, 1))
 
 
