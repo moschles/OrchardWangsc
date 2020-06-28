@@ -206,7 +206,7 @@ abstract class FitnessMachine[   A <: Agent , E <: Environment   ]
  */
 abstract class GeneticAlgorithm[   A <: Agent , E <: Environment   ]( populationsize:Int , mxgenerations:Int )
 {
-  private val population:Int = populationsize
+  val population:Int = populationsize
   private val maxgenerations:Int = mxgenerations
   val tester:FitnessMachine[A,E]
 
@@ -214,7 +214,7 @@ abstract class GeneticAlgorithm[   A <: Agent , E <: Environment   ]( population
   def this(n:Int) = this( n , 1000)
 
   def nextGeneration( generation:ArraySeq[A],
-                      fitnesses:ArraySeq[Double]): ArraySeq[E]
+                      fitnesses:ArraySeq[Double]): ArraySeq[A]
 }
 
 //

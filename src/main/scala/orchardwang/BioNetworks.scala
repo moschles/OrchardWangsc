@@ -25,7 +25,7 @@ class BioNetworks extends Phenotype
 
 
   /*  see https://i.imgur.com/V4SgAor.png  */
-  // Members are intentionally public for use by dynamics simlator.
+  // Members are intentionally public for use by dynamics simulator.
   val plasticityWeights = new FeedForwardNN( 4 , 4 , 1 )
   val plasticityBiases = new FeedForwardNN( 2 , 3 , 1 )
 

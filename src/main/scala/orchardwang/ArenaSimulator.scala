@@ -44,6 +44,12 @@ class ArenaSimulator extends FitnessMachine[Forager,Arena]
 
   /**
    * Place an agent into an environment to perform a single fitness test.
+   * A "fitness" test is the average over 32 lifetimes, where each lifetime
+   * is 3000 time steps.
+   *
+   * I have no idea why Orchard and Wang chose 32 lifetimes,
+   * These Arena environments are not nearly rich enough for this to matter.
+   * We could average over 3 or 4 lifetimes without loss of precision.
    *
    * @param agent an Agent to test for performance.
    * @param env an Environment within which to perform.

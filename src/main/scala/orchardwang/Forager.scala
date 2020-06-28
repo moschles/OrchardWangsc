@@ -70,6 +70,14 @@ class Forager ( initgenotype:Genotype ) extends Agent( initgenotype )
   }
 
 
+  def deepCopy( ):Forager = {
+    val previousGenes:Genotype = getGenotype
+    val dupGenes = previousGenes.deepCopy()
+    val dcForager:Forager = new Forager( dupGenes )
+    dcForager
+  }
+
+
 /**
  * Coordinates in an Arena follow mathematical notation, where
  * +Y goes up the chalkboard, and -Y goes down the chalkboard.
